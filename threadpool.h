@@ -72,7 +72,11 @@ ThreadPool<T>::~ThreadPool(){
 template<typename T>
 bool ThreadPool<T>::append(T *request){
 	m_queuelocker.lock();
-	if(m_woekqueue.size() > m_max_requests){
+	if(m_woekqueue.size() > m_max_requests){   /*
+												加上这一步判断操作，省去了另一个信号量"空位"，以及省去了对其p操作，也就是
+												消费一个空位所带来的p操作，因为如果那样做就需要一开始就设定好初始状态的空位的数量，导致任务队列容量变成定额。
+												也可以使用条件变量来做，达到类似的效果
+												*/
 		m_queuelocker.unlock();
 		return false;
 	}
@@ -93,13 +97,13 @@ template<typename T>
 void ThreadPool<T>::run(){
 	while(!m_stop)
 	{
-		m_queuestat.wait();  //wait必须在lock前面，不然会造成死锁
+		m_queuestat.wait();  //wait必须在lock前面，不然会造成死锁。
 		m_queuelocker.lock();//在生产者生产出产品，会唤醒多个阻塞在wait上的线程，
 							// 接着他们会去抢m_queuelocker锁，没抢到锁的线程会阻塞
 		if(m_workqueue.empty()){
 			m_queuelocker.unlock();
-			continue;		//轮询，直到产品队列不为空  
-							/* 加上这一步判断操作，省去了另一个信号量"空位"，省去了对其v操作：生产一个空位所带来的v操作，
+			continue;		//轮询，直到产品队列不为空。
+							/* 加上这一步判断操作，省去了另一个信号量"空位"，以及省去了对其v操作，也就是生产一个空位所带来的v操作，
 							因为如果那样做就需要一开始就设定好初始状态的空位的数量，导致任务队列容量变成定额。
 							m_workqueue空，表示没有任务，而"空位"占满了m_workqueue 。 也可以使用条件变量来做，达到类似的效果*/
 		}
