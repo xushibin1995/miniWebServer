@@ -7,9 +7,9 @@
 
 class Sem{
 public:
-	Sem(const int& initData){
-		//在构造函数中初始化一个信号量， 第二个参数0表示信号量用于单个进程内部（线程之间）
-		if(sem_init(&m_sem, 0, initData) != 0){
+	Sem(){
+		//在构造函数中初始化信号量， 第二个参数，表示信号量用于单个进程内部（线程之间）
+		if(sem_init(&m_sem, 0, 0) != 0){
 			throw std::exception();
 		}
 	}
