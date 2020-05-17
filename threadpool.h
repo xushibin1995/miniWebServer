@@ -10,7 +10,7 @@
 #include<cstdio>
 #include<exception>
 #include<pthrad.h>
-#include"locker.h"
+#include"Locker.h"
 
 template<typename T>
 class ThreadPool{
