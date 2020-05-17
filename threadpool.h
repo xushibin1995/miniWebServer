@@ -72,8 +72,7 @@ ThreadPool<T>::~ThreadPool(){
 template<typename T>
 bool ThreadPool<T>::append(T *request){
 	m_queuelocker.lock();
-	if(m_woekqueue.size() > m_max_requests){   /*
-												加上这一步判断操作，省去了另一个信号量"空位"，以及省去了对其p操作，也就是
+	if(m_woekqueue.size() > m_max_requests){   /*加上这一步判断操作，省去了另一个信号量"空位"，以及省去了对其p操作，也就是
 												消费一个空位所带来的p操作，因为如果那样做就需要一开始就设定好初始状态的空位的数量，导致任务队列容量变成定额。
 												也可以使用条件变量来做，达到类似的效果
 												*/
@@ -82,7 +81,7 @@ bool ThreadPool<T>::append(T *request){
 	}
 	m_workqueue.push_back(request);
 	m_queuelocker.unlock();
-	m_queuestat.post();  //生产者生产一个产品
+	m_queuestat.post();  	//生产者生产一个产品
 	return true;
 }
 
