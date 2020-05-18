@@ -60,15 +60,17 @@ public:
 	}
 
 	//添加定时器
-	Timer* add_timer(int timeout){
+	iter add_timer(int timeout){
 		if(timeout < 0){
-			return NULL;
+			return iter();
 		}
 		int ticks = (timeout) < SI ? 1 : (timeout / SI);
 
 		int rotation = ticks / N;
 		int ts = (cur_slot + ticks) % N;
+		auto tail = (*slots[ts]).end();
 		(*slots[ts]).push_back(Timer(rotation, ts) );
+		return tail;
 
 	}
 
@@ -86,10 +88,10 @@ public:
 			}
 			else{
 				listPtr->cb_func(listPtr->user_data);
-				del_timer(listPtr);
+				(*slots[cur_slot]).erase(listPtr);
 			}
 		}
-		cur_slot = ++cur_slot / N;
+		cur_slot = ++cur_slot % N;
 	}
 
 private:
