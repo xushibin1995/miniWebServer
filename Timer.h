@@ -55,7 +55,7 @@ public:
 	//析构
 	~Time_wheel(){
 		for(int i = 0; i < N; i++){
-			(*slots[i]).clear();
+			delete slots[i];
 		}
 	}
 
