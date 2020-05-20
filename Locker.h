@@ -61,27 +61,25 @@ private:
 
 //条件变量
 class Cond{
-	Cond(){
-		if(pthread_mutex_init(&m_mutex, NULL) != 0){
+	Cond(Locker &mutex):{
+		if(pthread_mutex_init(&mutex, NULL) != 0){
 			throw std::excetion();
 		}
 		if(pthread_cond_init(&m_cond, NULL) != 0){
-			pthread_mutex_destory(&m_mutex); //条件变量初始化失败，销毁的互斥锁，防止资源泄露
+	
 			throw std::exception();
 		}
 	}
 
 	~Cond(){
-		pthread_mutex_destory(&m_mutex);
+
 		pthread_cond_destory(&m_cond);
 
 	}
 
-	bool wait(){
+	bool wait(Locker &mutex){
 		int ret = 0; //在加锁前定义变量是为了减小锁的粒度。
-		pthread_mutex_lock(&m_mutex);
-		ret = ptread_cond_wait(&m_cond, &m_mutex);
-		pthread_mutex_unlock(&m_mutex);
+		ret = ptread_cond_wait(&m_cond, &mutex);
 		return ret == 0;
 	}
 
@@ -90,7 +88,6 @@ class Cond{
 	}
 
 private:
-	pthread_mutex_t m_mutex;
 	pthread_cond_t m_cond;
 
 };

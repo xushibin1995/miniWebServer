@@ -76,8 +76,8 @@ public:
 
 	//删除定时器
 	void del_timer(iter timer){
-			int ts = timer->time_slot;
-			(*slots[ts]).erase(timer);
+		int ts = timer->time_slot;
+		(*slots[ts]).erase(timer);
 	}
 
 	//秒针走一格
