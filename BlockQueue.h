@@ -67,7 +67,7 @@ public:
 		if(0 == msize)
 		{
 			m_mutex.unlock();
-			return NULL;
+			return *(T*)NULL;
 		}
 		m_mutex.unlock();
 		return m_array[m_front];
@@ -78,7 +78,7 @@ public:
 		if(0 == msize)
 		{
 			m_mutex.unlock();
-			return NULL;
+			return *(T*)NULL;
 		}
 		m_mutex.unlock();
 		return m_array[m_back];
