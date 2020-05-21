@@ -9,7 +9,7 @@
 #include<list>
 #include<cstdio>
 #include<exception>
-#include<pthrad.h>
+#include<pthread.h>
 #include"Locker.h"
 
 template<typename T>
@@ -25,7 +25,7 @@ private:
 
 private:
 	int m_thread_number;		//消费者数量，也是线程池中的线程数
-	int m_max_request;			//请求队列允许的最大请求数，也就是任务队列中的产品最大数目
+	int m_max_requests;			//请求队列允许的最大请求数，也就是任务队列中的产品最大数目
 	pthread_t* m_threads;		//指针指向一个数组的起始地址，该数组中保存所有线程的tid
 	std::list< T* > m_workqueue;	//用来装产品
 	Locker m_queuelocker;		//保护请求队列的互斥锁,采用RAII机制在构造函数中自动初始化
@@ -45,7 +45,7 @@ ThreadPool<T>::ThreadPool(int thread_number, int max_requests)
 	if(thread_number <= 0 || max_requests <= 0){
 		throw std::exception();
 	}
-	m_threads = new pthread_t[m_threads_number];
+	m_threads = new pthread_t[m_thread_number];
 	if(!m_threads){
 		throw std::exception();
 	}
@@ -72,7 +72,7 @@ ThreadPool<T>::~ThreadPool(){
 template<typename T>
 bool ThreadPool<T>::append(T *request){
 	m_queuelocker.lock();
-	if(m_woekqueue.size() > m_max_requests){   /*加上这一步判断操作，省去了另一个信号量"空位"，以及省去了对其p操作，也就是
+	if(m_workqueue.size() > m_max_requests){   /*加上这一步判断操作，省去了另一个信号量"空位"，以及省去了对其p操作，也就是
 												消费一个空位所带来的p操作，因为如果那样做就需要一开始就设定好初始状态的空位的数量，导致任务队列容量变成定额。
 												也可以使用条件变量来做，达到类似的效果
 												*/

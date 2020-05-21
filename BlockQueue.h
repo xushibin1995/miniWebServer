@@ -5,7 +5,7 @@
 #include<stdlib.h>
 #include<pthread.h>
 #include<sys/time.h>
-#include<Locker.h>
+#include"Locker.h"
 
 using namespace std;
 
@@ -54,7 +54,7 @@ public:
 
 	bool empty() const{
 		m_mutex.lock();
-		if(0 == m_size0){
+		if(0 == m_size){
 			m_mutex.unlock();
 			return true;
 		}
@@ -64,7 +64,7 @@ public:
 
 	T& front(){
 		m_mutex.lock();
-		if(0 == msize)
+		if(0 == m_size)
 		{
 			m_mutex.unlock();
 			return *(T*)NULL;
@@ -75,7 +75,7 @@ public:
 
 	T& back(){
 		m_mutex.lock();
-		if(0 == msize)
+		if(0 == m_size)
 		{
 			m_mutex.unlock();
 			return *(T*)NULL;
@@ -102,7 +102,7 @@ public:
 
 	bool push(const T& item){
 		m_mutex.lock();
-		if(m_sie >= m_max_size){
+		if(m_size >= m_max_size){
 			m_cond.broadcast();
 			m_mutex.unlock();
 			return false;
@@ -119,13 +119,26 @@ public:
 	T& pop(){
 		m_mutex.lock();
 		while(m_size <= 0){
-			m_cond.wait(m_mutex);
+			m_cond.wait(m_mutex.get() );
 		}
 
 		m_front = (m_front + 1) % m_max_size;
 		m_size--;
-		m-mutex.unlock();
+		m_mutex.unlock();
 		return m_array[m_front];
 	}
 
+private:
+	Locker m_mutex;
+    Cond m_cond;
+
+    T *m_array;
+    int m_size;
+    int m_max_size;
+    int m_front;
+    int m_back;
+
+
 };
+
+#endif

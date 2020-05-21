@@ -2,7 +2,7 @@
 #define LOCKER_H
 
 #include<exception>
-#include<pthread>
+#include<pthread.h>
 #include<semaphore.h>
 
 class Sem{
@@ -14,8 +14,14 @@ public:
 		}
 	}
 	//利用RAII机制，在析构函数中销毁信号量
+	Sem(int num){
+		if(sem_init(&m_sem, 0, num) !=0){
+			throw std::exception();
+		}
+	}
+
 	~Sem(){
-		sem_destory(&m_sem);
+		sem_destroy(&m_sem);
 	}
 
 	bool wait(){
@@ -41,7 +47,7 @@ public:
 	}
 
 	~Locker(){
-		pthread_mutex_destory(&m_mutex);
+		pthread_mutex_destroy(&m_mutex);
 	}
 
 	//对互斥锁进行p操作
@@ -54,6 +60,10 @@ public:
 		return pthread_mutex_unlock(&m_mutex) == 0;
 	}
 
+	pthread_mutex_t* get(){
+		return &m_mutex;
+	}
+
 private:
 	pthread_mutex_t m_mutex;
 
@@ -61,9 +71,9 @@ private:
 
 //条件变量
 class Cond{
-	Cond(Locker &mutex):{
+	Cond(Locker &mutex){
 		if(pthread_mutex_init(&mutex, NULL) != 0){
-			throw std::excetion();
+			throw std::exception();
 		}
 		if(pthread_cond_init(&m_cond, NULL) != 0){
 	
@@ -73,13 +83,13 @@ class Cond{
 
 	~Cond(){
 
-		pthread_cond_destory(&m_cond);
+		pthread_cond_destroy(&m_cond);
 
 	}
 
-	bool wait(Locker &mutex){
+	bool wait(pthread_mutex_t *mutex){
 		int ret = 0; //在加锁前定义变量是为了减小锁的粒度。
-		ret = ptread_cond_wait(&m_cond, &mutex);
+		ret = pthread_cond_wait(&m_cond, mutex);
 		return ret == 0;
 	}
 
