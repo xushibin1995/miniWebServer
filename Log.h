@@ -14,7 +14,7 @@ using namespace std;
 class Log{
 public:
 	static Log *get_instance(){
-		static Log instanec;
+		static Log instance;
 		return &instance;
 	}
 

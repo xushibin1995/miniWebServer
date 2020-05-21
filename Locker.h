@@ -71,7 +71,7 @@ private:
 
 //条件变量
 class Cond{
-	Cond(Locker &mutex){
+	Cond(pthread_mutex_t &mutex){
 		if(pthread_mutex_init(&mutex, NULL) != 0){
 			throw std::exception();
 		}
@@ -96,6 +96,11 @@ class Cond{
 	bool signal(){
 		return pthread_cond_signal(&m_cond) == 0;
 	}
+
+	bool broadcast()
+    {
+        return pthread_cond_broadcast(&m_cond) == 0;
+    }
 
 private:
 	pthread_cond_t m_cond;
