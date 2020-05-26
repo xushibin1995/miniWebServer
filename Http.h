@@ -83,8 +83,8 @@ private:
 	sockaddr_in m_address;	//对方的socket地址
 
 	char m_read_buf[READ_BUFFER_SIZE];	//读缓冲区
-	int m_read_idx;		//标志都缓冲中已经读入的客户端的最后一个字节的下一个字节的位置
-	int m_check_idx;	//当前正在分析的字符在都缓冲区中的位置；
+	int m_read_idx;		//标志读缓冲中已经读入的客户端的最后一个字节的下一个字节的位置
+	int m_checked_idx;	//当前正在分析的字符在读缓冲区中的位置；
 	int m_start_line;	//当前正在解析的行的起始位置
 	char m_write_buf[ WRITE_BUFFER_SIZE];	//写缓冲区
 	int m_write_idx;	//写缓冲区中待发送的字符数
@@ -94,7 +94,7 @@ private:
 
 	char m_real_file[FILENAME_LEN];	//客户请求的目标文件的完整路径，其内容扽与doc_root + m_url, doc_root时网站的根目录
 	char* m_url;					//客户请求的目标文件的文件名
-	char* m_verson;					//http协议版本号，这里仅支持HTTP/1.1
+	char* m_version;					//http协议版本号，这里仅支持HTTP/1.1
 	char* m_host;					//主机名
 	int m_content_length;			//http请求消息体的长度
 	bool m_linger;					//http请求是否保持连接
