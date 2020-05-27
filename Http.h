@@ -30,7 +30,7 @@ public:
 					  CHECK_STATE_HEADER,
 					CHECK_STATE_CONTENT };		//解析客户请求时，主状态机的状态
 	enum HTTP_CODE {NO_REQUEST, GET_REQUEST, BAD_REQUEST,
-					NO_RESOURCE, FORBNIDDEN_RESOURSE, FILE_REQUEST,
+					NO_RESOURCE, FORBIDDEN_REQUEST, FILE_REQUEST,
 					INTERNAL_ERROR, CLOSED_CONNECTION};		//http请求的处理结果
 	enum LINE_STATUS{ LINE_OK = 0, LINE_BAD, LINE_OPEN };
 
@@ -64,13 +64,14 @@ private:
 
 	//被process_write()调用用来填充http应答
 	void unmap();
-	bool add_reponse(const char*format, ...);
-	bool add_content(const char* content);
+	bool add_response(const char* format, ...);  
+	bool add_content( const char* content );
 	bool add_status_line(int status, const char* title);
 	bool add_headers(int content_length);
 	bool add_content_length(int content_length);
 	bool add_linger();
 	bool add_blank_line();
+
 
 public:
 	//同一事件模型，所有socket上的事件都被注册到同一个 epo内核事件表中，所以将epoll文件描述符设置为静态的
@@ -99,7 +100,8 @@ private:
 	int m_content_length;			//http请求消息体的长度
 	bool m_linger;					//http请求是否保持连接
 
-	char* m_file_adress;			//客户请求的目标文件被mmap到内存中的位置
+	char* m_string					//请求头数据
+	char* m_file_address;			//客户请求的目标文件被mmap到内存中的位置
 	struct stat m_file_stat;		//目标文件的状态，通过他我们可以判断文件是否存在、是否为目录文件、是否可读，并获取文件大小等信息
 	struct iovec m_iv[2];			//使用writev来执行写操作
 	int m_iv_count;					//m_iv_count表示被写内存块的数量
