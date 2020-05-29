@@ -106,7 +106,7 @@ void ThreadPool<T>::run(){
 							因为如果那样做就需要一开始就设定好初始状态的空位的数量，导致任务队列容量变成定额。
 							m_workqueue空，表示没有任务，而"空位"占满了m_workqueue 。 也可以使用条件变量来做，达到类似的效果*/
 		}
-		T *request = m_workqueue.frot();
+		T *request = m_workqueue.front();
 		m_workqueue.pop_front();
 		m_queuelocker.unlock();  //解锁
 		if(!request)

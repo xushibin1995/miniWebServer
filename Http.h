@@ -19,6 +19,9 @@
 #include<sys/wait.h>
 #include<sys/uio.h>
 #include"Locker.h"
+#include"Log.h"
+#include<string>
+using namespace std;
 
 class Http{
 public:
@@ -42,9 +45,14 @@ public:
 	//处理客户请求
 	void process();
 	//非阻塞读操作
-	bool read();
+	bool read_once();
 	//非阻塞写操作
 	bool write();
+	sockaddr_in *get_address()
+    {
+        return &m_address;
+    }
+
 
 private:
 	//初始化连接
@@ -93,14 +101,14 @@ private:
 	CHECK_STATE m_check_state;		//主状态机当前的状态
 	METHOD m_method;				//请求方法
 
-	char m_real_file[FILENAME_LEN];	//客户请求的目标文件的完整路径，其内容扽与doc_root + m_url, doc_root时网站的根目录
+	string m_real_file;	//客户请求的目标文件的完整路径，其内容扽与doc_root + m_url, doc_root时网站的根目录
 	char* m_url;					//客户请求的目标文件的文件名
 	char* m_version;					//http协议版本号，这里仅支持HTTP/1.1
 	char* m_host;					//主机名
 	int m_content_length;			//http请求消息体的长度
 	bool m_linger;					//http请求是否保持连接
 
-	char* m_string					//请求头数据
+	char* m_string;				//请求头数据
 	char* m_file_address;			//客户请求的目标文件被mmap到内存中的位置
 	struct stat m_file_stat;		//目标文件的状态，通过他我们可以判断文件是否存在、是否为目录文件、是否可读，并获取文件大小等信息
 	struct iovec m_iv[2];			//使用writev来执行写操作

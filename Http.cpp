@@ -13,7 +13,7 @@ const char* error_500_title = "Internet Error";
 const char* error_500_form = "There was an unusual problem serving the requested file.\n";
 
 //网站的根目录
-const char* doc_root = "./index.html";
+const char* doc_root = "./";
 
 //设置文件描述符对应的文件为非阻塞
 int setnonblocking(int fd){
@@ -85,7 +85,7 @@ void Http::init(){
 	m_write_idx = 0;		//写缓冲区中待发送的字符个数
 	memset(m_read_buf, '\0', READ_BUFFER_SIZE);
 	memset(m_write_buf, '\0', WRITE_BUFFER_SIZE);
-	memset(m_real_file, '\0', FILENAME_LEN);
+	m_real_file = "./index.html";
 }
 
 //从状态机
@@ -117,7 +117,7 @@ Http::LINE_STATUS Http::parse_line(){
 }
 
 //循环读取客户数据，直到无数据可读或者对方关闭连接
-bool Http::read(){
+bool Http::read_once(){
 	if(m_read_idx >= READ_BUFFER_SIZE){
 		return false;
 	}
@@ -295,10 +295,11 @@ Http::HTTP_CODE Http::process_read()
 }
 
 Http::HTTP_CODE Http::do_request(){
-    strcpy( m_real_file, doc_root );
-    int len = strlen( doc_root );
-    strncpy( m_real_file + len, m_url, FILENAME_LEN - len - 1 );
-    if ( stat( m_real_file, &m_file_stat ) < 0){
+    //strcpy( m_real_file, doc_root );
+    //int len = strlen( doc_root );
+    //strncpy( m_real_file + len, m_url, FILENAME_LEN - len - 1 );
+ 
+    if ( stat( m_real_file.c_str(), &m_file_stat ) < 0){
         return NO_RESOURCE;
     }
 
@@ -310,7 +311,7 @@ Http::HTTP_CODE Http::do_request(){
         return BAD_REQUEST;
     }
 
-    int fd = open( m_real_file, O_RDONLY );
+    int fd = open( m_real_file.c_str(), O_RDONLY );
     m_file_address = ( char* )mmap( 0, m_file_stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0 );
     close( fd );
     return FILE_REQUEST;

@@ -71,10 +71,9 @@ private:
 
 //条件变量
 class Cond{
-	Cond(pthread_mutex_t &mutex){
-		if(pthread_mutex_init(&mutex, NULL) != 0){
-			throw std::exception();
-		}
+public:
+	Cond(){
+		
 		if(pthread_cond_init(&m_cond, NULL) != 0){
 	
 			throw std::exception();

@@ -16,10 +16,11 @@ using namespace std;
 class Timer;
 
 struct Client_data{
+	typedef typename list<Timer>::iterator iter;
 	sockaddr_in address;
 	int sockfd;
 	char buf[BUFFER_SIZE];
-	Timer* timer;
+	iter timerIter;
 };
 
 
