@@ -154,7 +154,7 @@ int main(int argc, char *argv[]){
 
 		for(int i = 0; i <= number; i++){
 			int sockfd = events[i].data.fd;
-
+			//如果是监听描述符，表明连接事件到来
 			if(sockfd == listenfd){
 				struct sockaddr_in client_address;
 				socklen_t client_addrlength = sizeof(client_address);
@@ -185,7 +185,7 @@ int main(int argc, char *argv[]){
 				
 
 			}
-
+			//客户端关闭连接或者客户端错误，删除对应的定时器
 			else if(events[i].events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)){
 				users[sockfd].close_conn();
 				//服务器关闭连接，移除对应的定时器
@@ -196,7 +196,7 @@ int main(int argc, char *argv[]){
 				}
 			}
 
-			//处理信号
+			//处理信号事件
 			else if ((sockfd == pipefd[0]) &&(events[i].events & EPOLLIN)){
 				int sig;
 				char signals[1024];
@@ -221,7 +221,7 @@ int main(int argc, char *argv[]){
 					}
 				}
 			}
-
+			//客户端发送数据，socket buffer有数据可读
 			else if(events[i].events & EPOLLIN){
 				auto iter = users_timer[sockfd].timerIter;
 				if(users[sockfd].read_once()){
@@ -243,6 +243,7 @@ int main(int argc, char *argv[]){
 					}
 				}
 			}
+			//写事件
 			else if(events[i].events & EPOLLOUT){
 				if(!users[sockfd].write()){
 					users[sockfd].close_conn();
