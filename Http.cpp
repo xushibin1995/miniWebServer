@@ -36,12 +36,12 @@ void addfd(int epollfd, int fd, bool one_shot){
 	setnonblocking(fd);
 
 }
-
+//从内核时间表删除描述符
 void removefd(int epollfd, int fd){
 	epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, 0);
 	close(fd);
 }
-
+//将事件重置为EPOLLONESHOT
 void modfd(int epollfd, int fd, int ev){
 	epoll_event event;
 	event.data.fd = fd;
