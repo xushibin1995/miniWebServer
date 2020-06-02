@@ -48,13 +48,13 @@ void addsig(int sig, void (handler)(int), bool restart = true){
 	assert(sigaction(sig, &sa, NULL) != -1);
 
 }
-
+//定时处理任务，重新定时以不断触发SIGALRM信号
 void timer_handler(){
 	timewheel.tick();
 	alarm(TIMESLOT);
 
 }
-
+//定时器回调函数，删除非活动连接在socket上的注册事件，并关闭
 void cb_func(Client_data *user_data){
 	epoll_ctl(epollfd, EPOLL_CTL_DEL, user_data->sockfd, 0);
 	assert(user_data);
