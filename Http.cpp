@@ -33,8 +33,10 @@ void addfd(int epollfd, int fd, bool one_shot){
 
 	}
 	epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
-	setnonblocking(fd);
-
+	setnonblocking(fd);                              //ET模式下每次write或read需要循环write或read直到返回EAGAIN错误。以读操作为例，
+                                                    //这是因为ET模式只在socket描述符状态发生变化时才触发事件，如果不一次把socket内核缓冲区的数据读完，
+                                                    //会导致socket内核缓冲区中即使还有一部分数据，该socket的可读事件也不会被触发。
+                                                    //若ET模式下使用阻塞IO，则程序一定会阻塞在最后一次write或read操作，因此说ET模式下一定要使用非阻塞IO
 }
 //从内核时间表删除描述符
 void removefd(int epollfd, int fd){
