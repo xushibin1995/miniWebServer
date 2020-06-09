@@ -51,16 +51,10 @@ public:
 	//构造
 	Time_wheel() : cur_slot(0){
 		for(int i = 0; i < N; ++i){
-			slots.push_back(new list<Timer> );
+			slots.push_back( list<Timer>() );
 		}
 	}
 
-	//析构
-	~Time_wheel(){
-		for(int i = 0; i < N; i++){
-			delete slots[i];
-		}
-	}
 
 	//添加定时器
 	iter add_timer(int timeout){
@@ -71,28 +65,29 @@ public:
 
 		int rotation = ticks / N;						//rotation定时器定时的分钟数。
 		int ts = (cur_slot + ticks) % N;
-		auto tail = (*slots[ts]).end();
-		(*slots[ts]).push_back(Timer(rotation, ts) );
-		return tail;
+		
+		slots[ts].push_back(Timer(rotation, ts) );
+		auto end = slots[ts].end();
+		return --end;
 
 	}
 
 	//删除定时器
 	void del_timer(iter timer){
 		int ts = timer->time_slot;
-		(*slots[ts]).erase(timer);
+		slots[ts].erase(timer);
 	}
 
 	//秒针走一格
 	void tick(){
-        for(auto listPtr = (*slots[cur_slot]).begin(); listPtr != (*slots[cur_slot]).end(); ){
+        for(auto listPtr = slots[cur_slot].begin(); listPtr != slots[cur_slot].end(); ){
 			if(listPtr->rotation > 0){
 				listPtr->rotation--;
 				listPtr++;
 			}
 			else{
 				listPtr->cb_func(listPtr->user_data);
-				(*slots[cur_slot]).erase(listPtr++);		//erase的时候原来位置上的迭代器会失效，所以采用listPtr++
+				slots[cur_slot].erase(listPtr++);		//erase的时候原来位置上的迭代器会失效，所以采用listPtr++
 			}
 		}
 		cur_slot = ++cur_slot % N;
@@ -100,7 +95,7 @@ public:
 
 private:
 	int cur_slot;				   //当前时刻秒针指向的槽
-	vector< list<Timer>* > slots;  //时间轮,共有N个槽
+	vector< list<Timer> > slots;  //时间轮,共有N个槽
 };
 
 #endif
