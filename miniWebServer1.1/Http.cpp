@@ -65,14 +65,19 @@ void Http::close_conn(bool real_close){
 void Http::init(int sockfd, const sockaddr_in& addr){
 	m_sockfd = sockfd;
 	m_address = addr;
-	int reuse = 1;
-	setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse,sizeof(reuse)); //服务器主动关闭连接时，避免TIME_WAIT
+	//int reuse = 1;
+	//setsockopt(m_sockfd, SOL_SOCKET, SO_REUSEADDR, &reuse,sizeof(reuse)); //服务器主动关闭连接时，避免TIME_WAIT
 	addfd(m_epollfd, sockfd, true);
 	m_user_count++;			//新增加一个连接，客户总量加1
 	init();					//真正的init方法
 }
 
 void Http::init(){
+
+    bytes_to_send = 0;
+    bytes_have_send = 0;
+    cgi = 0;
+
 	m_check_state = CHECK_STATE_REQUESTLINE;
 	m_linger = false;		//http是否保持连接
 
@@ -87,7 +92,7 @@ void Http::init(){
 	m_write_idx = 0;		//写缓冲区中待发送的字符个数
 	memset(m_read_buf, '\0', READ_BUFFER_SIZE);
 	memset(m_write_buf, '\0', WRITE_BUFFER_SIZE);
-	m_real_file = "./index.html";
+    memset(m_real_file, '\0', FILENAME_LEN);
 }
 
 //从状态机
@@ -149,47 +154,49 @@ bool Http::read_once(){
 
 //解析HTTP请求行，获得请求方法、目标url，以及http版本号
 Http::HTTP_CODE Http::parse_request_line(char*text){
-	m_url = strpbrk(text, " \t");
-	if(!m_url){
-		return BAD_REQUEST;
-	}
-	*m_url++ = '\0';
+    m_url = strpbrk(text, " \t");
+    if (!m_url)
+    {
+        return BAD_REQUEST;
+    }
+    *m_url++ = '\0';
+    char *method = text;
+    if (strcasecmp(method, "GET") == 0)
+        m_method = GET;
+    else if (strcasecmp(method, "POST") == 0)
+    {
+        m_method = POST;
+        cgi = 1;
+    }
+    else
+        return BAD_REQUEST;
+    m_url += strspn(m_url, " \t");
+    m_version = strpbrk(m_url, " \t");
+    if (!m_version)
+        return BAD_REQUEST;
+    *m_version++ = '\0';
+    m_version += strspn(m_version, " \t");
+    if (strcasecmp(m_version, "HTTP/1.1") != 0)
+        return BAD_REQUEST;
+    if (strncasecmp(m_url, "http://", 7) == 0)
+    {
+        m_url += 7;
+        m_url = strchr(m_url, '/');
+    }
 
-	char* method = text;
-	if(strcasecmp(method, "GET") == 0){
-		m_method = GET;
-	}
-	else{
-		return BAD_REQUEST;
-	}
+    if (strncasecmp(m_url, "https://", 8) == 0)
+    {
+        m_url += 8;
+        m_url = strchr(m_url, '/');
+    }
 
-	m_url += strspn(m_url, " \t");
-	m_version = strpbrk(m_url, " \t");
-	if(!m_version){
-		return BAD_REQUEST;
-	}
-	*m_version++ = '\0';
-	m_version += strspn(m_version, " \t");
-	if(!m_version){
-		return BAD_REQUEST;
-	}
-	*m_version++ = '\0'; 
-	m_version += strspn(m_version, " \t");
-	if(strcasecmp(m_version, "HTTP/1.1") != 0){
-		return BAD_REQUEST;
-	}
-	if(strncasecmp(m_url, "http://", 7) == 0){
-		m_url += 7;
-		m_url = strchr(m_url, '/');
-
-	}
-
-	if(!m_url || m_url[0] != '/'){
-		return BAD_REQUEST;
-	}
-
-	m_check_state = CHECK_STATE_HEADER;
-	return NO_REQUEST;
+    if (!m_url || m_url[0] != '/')
+        return BAD_REQUEST;
+    //当url为/时，显示判断界面
+    if (strlen(m_url) == 1)
+        strcat(m_url, "index.html");
+    m_check_state = CHECK_STATE_HEADER;
+    return NO_REQUEST;
 }
 
 Http::HTTP_CODE Http::parse_headers(char * text){
@@ -228,7 +235,7 @@ Http::HTTP_CODE Http::parse_headers(char * text){
     else
     {
 
-        LOG_INFO("oop!unknow header: %s", text);
+        LOG_INFO("unknow header: %s", text);
         Log::get_instance()->flush();
     }
     return NO_REQUEST;
@@ -301,7 +308,9 @@ Http::HTTP_CODE Http::do_request(){
     //int len = strlen( doc_root );
     //strncpy( m_real_file + len, m_url, FILENAME_LEN - len - 1 );
  
-    if ( stat( m_real_file.c_str(), &m_file_stat ) < 0){
+   strcpy(m_real_file, "./index.html");
+ 
+    if ( stat( m_real_file, &m_file_stat ) < 0){
         return NO_RESOURCE;
     }
 
@@ -309,11 +318,11 @@ Http::HTTP_CODE Http::do_request(){
         return FORBIDDEN_REQUEST;
     }
 
-    if ( S_ISDIR( m_file_stat.st_mode)){
+    if ( S_ISDIR( m_file_stat.st_mode)){  
         return BAD_REQUEST;
     }
 
-    int fd = open( m_real_file.c_str(), O_RDONLY );
+    int fd = open( m_real_file, O_RDONLY );
     m_file_address = ( char* )mmap( 0, m_file_stat.st_size, PROT_READ, MAP_PRIVATE, fd, 0 );
     close( fd );
     return FILE_REQUEST;
@@ -498,6 +507,7 @@ bool Http::process_write( HTTP_CODE ret )
     m_iv[ 0 ].iov_base = m_write_buf;
     m_iv[ 0 ].iov_len = m_write_idx;
     m_iv_count = 1;
+    bytes_to_send = m_write_idx;
     return true;
 }
 

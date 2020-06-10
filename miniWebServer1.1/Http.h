@@ -82,7 +82,7 @@ private:
 
 
 public:
-	//同一事件模型，所有socket上的事件都被注册到同一个 epo内核事件表中，所以将epoll文件描述符设置为静态的
+	//统一事件模型，所有socket上的事件都被注册到同一个 epo内核事件表中，所以将epoll文件描述符设置为静态的
 	static int m_epollfd;
 	//统计用户数量
 	static int m_user_count;
@@ -101,7 +101,7 @@ private:
 	CHECK_STATE m_check_state;		//主状态机当前的状态
 	METHOD m_method;				//请求方法
 
-	string m_real_file;	//客户请求的目标文件的完整路径，其内容扽与doc_root + m_url, doc_root时网站的根目录
+	char m_real_file[FILENAME_LEN];	//客户请求的目标文件的完整路径，其内容扽与doc_root + m_url, doc_root时网站的根目录
 	char* m_url;					//客户请求的目标文件的文件名
 	char* m_version;					//http协议版本号，这里仅支持HTTP/1.1
 	char* m_host;					//主机名
@@ -113,6 +113,10 @@ private:
 	struct stat m_file_stat;		//目标文件的状态，通过他我们可以判断文件是否存在、是否为目录文件、是否可读，并获取文件大小等信息
 	struct iovec m_iv[2];			//使用writev来执行写操作
 	int m_iv_count;					//m_iv_count表示被写内存块的数量
+
+	int cgi;
+	int bytes_to_send;
+	int bytes_have_send;
 
 };
 
