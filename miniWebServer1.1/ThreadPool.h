@@ -111,6 +111,7 @@ void ThreadPool<T>::run(){
 		m_queuelocker.unlock();  //解锁
 		if(!request)
 			continue;
+		request->process();
 
 
 	}
