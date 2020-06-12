@@ -20,6 +20,43 @@
 extern int addfd( int epollfd, int fd, bool one_shot );
 extern int removefd( int epollfd, int fd );
 
+bool daemonize()
+{
+    pid_t pid = fork();
+    if ( pid < 0 )
+    {
+        return false;
+    }
+    else if ( pid > 0 )
+    {
+        exit( 0 );
+    }
+
+    umask( 0 );
+
+    pid_t sid = setsid();
+    if ( sid < 0 )
+    {
+        return false;
+    }
+
+    if ( ( chdir( "/" ) ) < 0 )
+    {
+        /* Log the failure */
+        return false;
+    }
+
+    close( STDIN_FILENO );
+    close( STDOUT_FILENO );
+    close( STDERR_FILENO );
+
+    open( "/dev/null", O_RDONLY );
+    open( "/dev/null", O_RDWR );
+    open( "/dev/null", O_RDWR );
+    return true;
+}
+
+
 void addsig( int sig, void( handler )(int), bool restart = true )
 {
     struct sigaction sa;
@@ -42,7 +79,15 @@ void show_error( int connfd, const char* info )
 
 
 int main( int argc, char* argv[] )
-{
+{	
+
+	if(daemonize()!=ture)
+	{
+		printf("daemonized err\n");
+		exit(0);
+	}
+
+	
     if( argc <= 2 )
     {
         printf( "usage: %s ip_address port_number\n", basename( argv[0] ) );
