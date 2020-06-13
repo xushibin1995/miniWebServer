@@ -8,22 +8,23 @@
 #include<errno.h>
 #include<vector>
 #include<iostream>
-#include"Locker"
+#include"Locker.h"
 
 #define DEFAULT_TIME 10
 #define MIN_WAIT_TASK_NUM 10
 #define DEFAULT_THREAD_VARY 10
-using namesapce std;
+using namespace std;
 
 
-struct threadpool_task_t{
-	void *(function)(void *);
+class threadpool_task_t{
+public:
+	void *(*function)(void *);
 	void *arg;
 };
 
 
 
-struct threadpool_t{
+class threadpool{
 public:
 	Locker locker;// 用于锁住本结构体
 	Locker thread_counter;
@@ -48,8 +49,8 @@ public:
 	bool shutdown;
 
 public:
-	threadpool_t(int min_thr_num, int max_thr_num, int queue_max_size)
-	: task_queue(max_queue_size), threads(max_thr_num)
+	threadpool(int min_thr_num, int max_thr_num, int queue_max_size)
+	: task_queue(queue_max_size), threads(max_thr_num)
 	{
 		int i;
 		this->min_thr_num = min_thr_num;
@@ -63,16 +64,16 @@ public:
 		this->shutdown = false;
 
 		for(int i = 0; i < min_thr_num; i++){
-			pthread_create(&thread[i], NULL, threadpool_thread, this);  //threadpool_thread函数就是worker函数
+			pthread_create(&threads[i], NULL, worker, this);  //threadpool_thread函数就是worker函数
 			cout<<"start thread : "<<threads[i]<<endl;
 		}
-		pthread_create(&adjust_tid, NULL, adjust_thread, this);  //管理者线程
+		pthread_create(&adjust_tid, NULL, manager, this);  //管理者线程
 
 
 	}
 
 	//向线程池中添加任务
-	threadpool_add(void*(function)(void * arg), void *arg ){
+	int threadpool_add(void*(function)(void * arg), void *arg ){
 		locker.lock();
 		while(queue_size == queue_max_size && !shutdown){
 			queue_not_full.wait(locker.get() );
@@ -83,7 +84,8 @@ public:
 
 		//如果工作线程原来的而参清空工作线程原来的回调函数的参数
 		if(task_queue[queue_rear].arg != NULL){
-			delete task_queue[queue_rear].arg;
+			//delete task_queue[queue_rear].arg;
+			free(task_queue[queue_rear].arg);
 			task_queue[queue_rear].arg = NULL;
 
 		}
@@ -97,14 +99,20 @@ public:
 		return 0;
 	}
 
+	static void *worker(void *arg){
+		threadpool* pool = static_cast<threadpool *>(arg);
+		pool->threadpool_thread();
+		return pool;
+	}
+
 	//线程池中的工作线程
-	void * threadpool_thread(){
-		thread_task_t task;
+	 void  threadpool_thread(){
+		threadpool_task_t task;
 		//每一个线程不停地循环工作，往任务队列里面拿产品，直到被锁
 		while(true){
 			locker.lock();
-			while(queue_size == 0 && !pool->shutdown){
-				coout<"thread "<<pthread_self()<<"is waiting"<<endl;
+			while(queue_size == 0 && !shutdown){
+				cout<<"thread : "<<pthread_self()<<"is waiting"<<endl;
 				queue_not_empty.wait(locker.get() );
 
 				//清楚指定数目的空闲线程，如果要结束的线程个数大于0，就结束线程
@@ -140,7 +148,7 @@ public:
 			thread_counter.lock();
 			busy_thr_num++;
 			thread_counter.unlock();
-			(*task.functin() )(task.arg);		//执行回调函数
+			(*task.function)(task.arg);		//执行回调函数
 
 			cout<<"thread : "<<pthread_self()<<"end working"<<endl;
 			thread_counter.lock();
@@ -150,9 +158,16 @@ public:
 		}
 	}
 
-	void adjust_thread(){
+
+	static void *manager(void *arg){
+		threadpool* pool = static_cast<threadpool *>(arg);
+		pool->adjust_thread();
+		return pool;
+	}
+
+	 void adjust_thread(){
 		while(!shutdown){
-			sleep(DEFALUT);
+			sleep(DEFAULT_TIME);
 			locker.lock();
 			int queue_size = this->queue_size;
 			int live_thr_num = this->live_thr_num;
@@ -160,21 +175,21 @@ public:
 
 			thread_counter.lock();
 			int busy_thr_num = this->busy_thr_num;
-			thiread_counter.unlock();
+			thread_counter.unlock();
 
 			if(queue_size >= MIN_WAIT_TASK_NUM && live_thr_num < max_thr_num){
-				//locker.lock(); 
+				locker.lock(); 
 				//变量i是用来遍历threads名单用的
-				for(int add = 0, int i = 0; i < max_thr_num && add < DEFAULT_THREAD_VARY
+				for(int add = 0, i = 0; i < max_thr_num && add < DEFAULT_THREAD_VARY
 					&& 	live_thr_num < max_thr_num; i++){
 					//检查threads线程名单，名单上有空位或者有死者，那么就把新的线程id放在那个位置上
-					if(threads[i] == 0 || is_thread_alive(thread[i]) ){ 
-						pthread_create(&threads[i], NULL, threadpool_thread, this);
+					if(threads[i] == 0 || is_thread_alive(threads[i]) ){ 
+						pthread_create(&threads[i], NULL, worker, this);
 						add;
 						live_thr_num++;   //live_thr_num变量只有管理者线程会做写操作，不会出现竞态条件，所以不用加锁						
 					}
 				}
-				//locker.unlock();
+				locker.unlock();
 			}
 
 			//忙线程不到存活线程的一半，
@@ -182,7 +197,7 @@ public:
 				locker.lock();
 				wait_exit_thr_num = DEFAULT_THREAD_VARY;
 				locker.unlock();
-				for(int i = 0; i < DEFAULT_THREAD_VARY){
+				for(int i = 0; i < DEFAULT_THREAD_VARY; i++){
 					queue_not_empty.signal();  //空闲线程阻塞在queue_not_empty条件变量上，因为没有产品了（queue为空）所以阻塞
 											   //唤醒空闲线程后，由于wait_exit_thr_num > 0，所以进入自杀模式
 				}
@@ -202,7 +217,7 @@ public:
 	int threadpool_busy_threadnum(){
     	int busy_threadnum = -1;
     	thread_counter.lock();
-    	busy_threadnum = pool->busy_thr_num;
+    	busy_threadnum = busy_thr_num;
     	thread_counter.unlock();
     	return busy_threadnum;
 	}
