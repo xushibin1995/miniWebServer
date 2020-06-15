@@ -73,7 +73,7 @@ public:
 	}
 
 	//向线程池中添加任务
-	int threadpool_add(void*(function)(void * arg), void *arg ){
+	int threadpool_add(void*(*function)(void * arg), void *arg ){
 		locker.lock();
 		while(queue_size == queue_max_size && !shutdown){
 			queue_not_full.wait(locker.get() );
